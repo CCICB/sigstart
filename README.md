@@ -9,6 +9,8 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/sigstart)](https://CRAN.R-project.org/package=sigstart)
+[![Codecov test
+coverage](https://codecov.io/gh/CCICB/sigstart/graph/badge.svg)](https://app.codecov.io/gh/CCICB/sigstart)
 <!-- badges: end -->
 
 **Sigstart** reads small variants, copy number changes, and structural
