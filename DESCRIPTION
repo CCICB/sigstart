@@ -29,3 +29,5 @@ Imports:
     vcfR
 Remotes: 
     selkamand/sigshared
+URL: https://github.com/CCICB/sigstart
+BugReports: https://github.com/CCICB/sigstart/issues
