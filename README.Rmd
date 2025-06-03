@@ -20,37 +20,107 @@ knitr::opts_chunk$set(
 [![CRAN status](https://www.r-pkg.org/badges/version/sigstart)](https://CRAN.R-project.org/package=sigstart)
 <!-- badges: end -->
 
-The goal of sigstart is to ...
+**Sigstart** reads small variants, copy number changes, and structural rearrangements from common bioinformatics file formats like VCFs and segment files. It converts these data into formats compatible with **sigminer** and other signature analysis tools.
 
 ## Installation
 
-You can install the development version of sigstart like so:
+You can install the development version of sigstart from [GitHub](https://github.com/) with:
 
 ``` r
-# FILL THIS IN! HOW CAN PEOPLE INSTALL YOUR DEV PACKAGE?
+if (!require("remotes"))
+    install.packages("remotes")
+
+remotes::install_github("selkamand/sigstart")
 ```
 
-## Example
 
-This is a basic example which shows you how to solve a common problem:
+## Quick Start
 
-```{r example}
+```{r}
 library(sigstart)
-## basic example code
+
+# Convert SNVs and Indels from a tumor-normal VCF -> MAF-like dataframe for sigminer
+path_vcf_snv <- system.file("tumor_normal.purple.somatic.vcf.gz",package = "sigstart")
+sigminer_maf_like_dataframe <- parse_vcf_to_sigminer_maf(path_vcf_snv, sample_id = "tumor")
+
+# Convert SNVs and INDELs from sample-chrom-pos-ref-alt TSV file to a MAF-like dataframe (Pos should be 1-based)
+path_tsv <- system.file("snvs_indels.tsv", package = "sigstart")
+sigminer_maf_like_dataframe <- parse_tsv_to_sigminer_maf(path_tsv, verbose = FALSE)
+
+# Convert SNVs and INDELs from a single-sample chrom-pos-ref-alt TSV file to a MAF-like dataframe (Pos should be 1-based)
+path_tsv <- system.file("snvs_indels.singlesample.tsv", package = "sigstart")
+sigminer_maf_like_dataframe <- parse_tsv_to_sigminer_maf(path_tsv, verbose = FALSE, sample_id = "tumor")
+
+# Convert Purple SVs from VCF -> BEDPE-like structure for sigminer
+path_vcf_sv <- system.file("tumor.purple.sv.vcf", package = "sigstart")
+sigminer_sv_dataframe <-  parse_purple_sv_vcf_to_sigminer(path_vcf_sv, sample_id = "tumor")
+
+# Convert Purple SVs from VCF -> BEDPE structure for sigprofiler
+bedpe_dataframe <- parse_purple_sv_vcf_to_sigprofiler(path_vcf_sv)
+
+# Convert Purple SVs from VCF -> BEDPE structure (identical output to above)
+bedpe_dataframe <- parse_purple_sv_vcf_to_bedpe(path_vcf_sv)
+
+# Convert Purple CN Segment File -> Sigminer 
+path_cn <- system.file("purple.cnv.somatic.tsv", package = "sigstart")
+sigminer_cn_dataframe <- parse_purple_cnv_to_sigminer(path_cn, sample_id = "tumor")
+
+# Convert CN Segment files from other tools -> Sigminer
+# (by manually specifying the column name mappings)
+path_cn_notpurple <- system.file("single_sample.copynumber.tsv", package = "sigstart")
+sigminer_cn_dataframe <- parse_cnv_to_sigminer(
+  path_cn_notpurple,
+  sample_id = "tumor",
+  col_chromosome = "chr",
+  col_start = "start",
+  col_end = "end",
+  col_copynumber = "total_cn",
+  col_minor_cn = "minor_cn"
+)
+
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+## Cohort -> Single Sample Files
 
-```{r cars}
-summary(cars)
+Signature analysis tools including sigscreen and signal are easier to run from single sample data files. Here we demonstrate how to split common cohort/multisample filetypes into a collection of single-sample files.
+
+```{r remove_old_single_sample_dir, include=FALSE}
+unlink("single_sample_files", recursive = TRUE)
 ```
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
 
-You can also embed plots, for example:
+### Converting cohort MAF to single sample VCFs
 
-```{r pressure, echo = FALSE}
-plot(pressure)
+Signature analysis tools including sigscreen and signal are easier to run from single sample VCFs than cohort-MAFs. The convert_maf_to_vcfs function splits a cohort MAF file into a collection of minimal single sample vcfs.
+
+```{r}
+# Split MAF into single sample VCFs
+path_maf <- system.file(package = "sigstart", "snvs_indel.5sample.maf")
+convert_maf_to_vcfs(
+  path_maf, 
+  outdir = "single_sample_files/vcfs", 
+  verbose = FALSE
+)
+
+# Parse the vcfs 
+# (no need to specify a sample ID since these are single sample VCFs)
+maf <- parse_vcf_to_sigminer_maf("single_sample_files/vcfs/sampleA.snv_indel.vcf.bgz", verbose = FALSE)
+head(maf)
 ```
 
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+### Converting cohort copynumber calls into single sample segment VCFs
+
+```{r}
+# Split cohort CNV segment files into single sample files 
+path_copynumber <- system.file(package = "sigstart", "cohort.3sample.copynumber.hg38.tsv")
+convert_cohort_segment_file_to_single_samples(
+  path_copynumber, 
+  outdir = "single_sample_files/cnvs", 
+  verbose = FALSE
+)
+
+# Parse the copynumber file
+cnv <- parse_cnv_to_sigminer("single_sample_files/cnvs/sampleA.copynumber.tsv.bgz", sample_id = "sampleA")
+head(cnv)
+```
+
