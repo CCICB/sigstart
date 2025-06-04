@@ -106,6 +106,38 @@ test_that("parse_tsv_to_sigminer_maf parses a well-formed TSV correctly", {
 })
 
 
+test_that("parse_tsv_to_sigminer_maf works on annovar files", {
+
+  path_annovar <- system.file("annovar.hg38.txt", package = "sigstart")
+  df_input <- read.csv(file = path_annovar, header = TRUE, sep = "\t")
+
+  maf <- parse_tsv_to_sigminer_maf(path_annovar, verbose = FALSE, sample_id = "testsample")
+  # basic structure
+  expect_s3_class(maf, "data.frame")
+  expect_true(nrow(maf) == nrow(df_input))
+
+  # check that columns got renamed/mapped as expected by df2maf_minimal()
+  # (adjust these to your actual output column names)
+  expected_cols <- c(
+    "Tumor_Sample_Barcode",
+    "Chromosome",
+    "Start_Position",
+    "Reference_Allele",
+    "Tumor_Seq_Allele2"
+  )
+  expect_true(all(expected_cols %in% colnames(maf)))
+
+  expect_equal(
+    sort(unique(as.character(maf$Chromosome))),
+    sort(unique(df_input$Chr))
+  )
+  expect_equal(
+    sort(maf$Start_Position),
+    sort(df_input$Start)
+  )
+})
+
+
 test_that("parse_tsv_to_sigminer_maf errors on missing required columns", {
   df_bad <- data.frame(
     Chromosome = c("1", "2"),  # missing Position, Ref, Alt, Sample
@@ -230,5 +262,6 @@ test_that("parse_purple_cnv_to_sigminer & parse_cnv_to_sigminer work the same", 
 
   expect_equal(sigminer_purple_cnv, sigminer_cnv)
 })
+
 
 

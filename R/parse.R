@@ -194,8 +194,8 @@ parse_tsv_to_sigminer_maf <- function(file, ref_genome = "uncertain", sep = "\t"
 
   observed_column_names <- colnames(df_tsv)
 
-  col_chrom <- identify_matching_in_order(observed_column_names, patterns = c("^chromosome$", "^chrom$", "^#chrom"))
-  col_pos <- identify_matching_in_order(observed_column_names, patterns = c("^position$", "^pos$", "^start_position$"))
+  col_chrom <- identify_matching_in_order(observed_column_names, patterns = c("^chromosome$", "^chrom$", "^#chrom", "^chr"))
+  col_pos <- identify_matching_in_order(observed_column_names, patterns = c("^position$", "^pos$", "^start_position$", "start"))
   col_ref <- identify_matching_in_order(observed_column_names, patterns = c("^ref$", "^reference$", "^reference_allele"))
   col_alt <- identify_matching_in_order(observed_column_names, patterns = c("^alt$", "^alternative_alleles?$", "^alt_alleles?", "tumor_seq_allele2"))
 

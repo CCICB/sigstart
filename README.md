@@ -45,7 +45,11 @@ sigminer_maf_like_dataframe <- parse_tsv_to_sigminer_maf(path_tsv, verbose = FAL
 
 # Convert SNVs and INDELs from a single-sample chrom-pos-ref-alt TSV file to a MAF-like dataframe (Pos should be 1-based)
 path_tsv <- system.file("snvs_indels.singlesample.tsv", package = "sigstart")
-sigminer_maf_like_dataframe <- parse_tsv_to_sigminer_maf(path_tsv, verbose = FALSE, sample_id = "tumor")
+sigminer_maf_like_dataframe <- parse_tsv_to_sigminer_maf(path_tsv, sample_id = "tumor", verbose = FALSE)
+
+# Convert SNVs and INDELs from Annovar annotated single-sample file to a MAF-like dataframe
+path_annovar <- system.file("annovar.hg38.txt", package = "sigstart")
+sigminer_maf_like_dataframe <- parse_tsv_to_sigminer_maf(path_annovar, sample_id = "tumor", verbose = FALSE,)
 
 # Convert Purple SVs from VCF -> BEDPE-like structure for sigminer
 path_vcf_sv <- system.file("tumor.purple.sv.vcf", package = "sigstart")
