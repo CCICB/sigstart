@@ -52,7 +52,6 @@ as this information is not automatically extracted from the MAF.
 Also, no filtering is applied to the MAF—every variant in your MAF will be saved in the VCFs.
 }
 \examples{
-
 # Setup output directory
 outdir = tempfile(pattern = "vcfs")
 

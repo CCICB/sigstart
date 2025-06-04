@@ -22,7 +22,6 @@
 #' @export
 #'
 #' @examples
-#'
 #' # Setup output directory
 #' outdir = tempfile(pattern = "vcfs")
 #'
@@ -140,7 +139,6 @@ convert_maf_to_vcfs <- function(path, outdir = "vcfs",
 #' @export
 #'
 #' @examples
-
 #' # Setup output directory
 #' outdir = tempfile(pattern = "cnvs")
 #'

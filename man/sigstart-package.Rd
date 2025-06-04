@@ -8,6 +8,14 @@
 \description{
 Parse small variants, copy number changes, and structural rearrangements from commmon bioinformatics file formats like VCFs and segment files. Convert these data into formats compatible with signature analysis toolkits.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/CCICB/sigstart}
+  \item Report bugs at \url{https://github.com/CCICB/sigstart/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Sam El-Kamand \email{selkamand@ccia.org.au} (\href{https://orcid.org/0000-0003-2270-8088}{ORCID})
 
