@@ -11,6 +11,7 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 status](https://www.r-pkg.org/badges/version/sigstart)](https://CRAN.R-project.org/package=sigstart)
 [![Codecov test
 coverage](https://codecov.io/gh/CCICB/sigstart/graph/badge.svg)](https://app.codecov.io/gh/CCICB/sigstart)
+[![R-CMD-check](https://github.com/CCICB/sigstart/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/CCICB/sigstart/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 **Sigstart** reads small variants, copy number changes, and structural
