@@ -268,14 +268,13 @@ parse_purple_sv_vcf_to_bedpe <- function(vcf_sv, include = c("pass", "pass_stric
   vcf = VariantAnnotation::readVcf(vcf_sv)
 
   # Export breakpoints to BEDPE
-  bpgr = StructuralVariantAnnotation::breakpointRanges(vcf)
-  if(include == "pass_strict") {
-    bpgr <- plyranges::filter(bpgr, FILTER == "PASS")
-  }
-  else if(include == "pass"){ # Allow PASS or missing
-    bpgr <- plyranges::filter(bpgr, FILTER %in% c("PASS", "."))
-  }
-  else if(include == "all"){
+  bpgr <- StructuralVariantAnnotation::breakpointRanges(vcf)
+  if (include == "pass_strict") {
+    bpgr <- dplyr::filter(bpgr, FILTER == "PASS")
+  } else if (include == "pass") {
+    # Allow PASS or missing
+    bpgr <- dplyr::filter(bpgr, FILTER %in% c("PASS", "."))
+  } else if (include == "all") {
     #"Include all variants"
   }
 
