@@ -24,4 +24,3 @@ test_that("fix_alleles works correctly", {
   expect_equal(result$alt, c("G", "T", "-"))
   expect_equal(result$numdropped, c(2, 0, 1))
 })
-

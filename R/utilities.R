@@ -10,11 +10,20 @@ fix_alleles_scalar <- function(ref, alt) {
   #assertions::assert_string(alt)
 
   numdropped <- 0
-  while (nchar(ref) != 0 & nchar(alt) != 0 & substr(ref, 1, 1) == substr(alt, 1, 1) & ref != alt) {
+  while (
+    nchar(ref) != 0 &
+      nchar(alt) != 0 &
+      substr(ref, 1, 1) == substr(alt, 1, 1) &
+      ref != alt
+  ) {
     ref <- substr(ref, 2, nchar(ref))
     alt <- substr(alt, 2, nchar(alt))
-    if (nchar(ref) == 0) ref <- "-"
-    if (nchar(alt) == 0) alt <- "-"
+    if (nchar(ref) == 0) {
+      ref <- "-"
+    }
+    if (nchar(alt) == 0) {
+      alt <- "-"
+    }
     numdropped <- numdropped + 1
   }
 
@@ -29,7 +38,6 @@ fix_alleles_scalar <- function(ref, alt) {
 fix_alleles <- function(ref, alt) {
   assertions::assert_equal(length(ref), length(alt))
 
-
   ls_fixed_alleles <- lapply(seq_along(ref), FUN = function(i) {
     fix_alleles_scalar(
       ref = ref[i],
@@ -37,7 +45,10 @@ fix_alleles <- function(ref, alt) {
     )
   })
 
-  df <- as.data.frame(do.call(rbind, ls_fixed_alleles), stringsAsFactors = FALSE)
+  df <- as.data.frame(
+    do.call(rbind, ls_fixed_alleles),
+    stringsAsFactors = FALSE
+  )
 
   # Remove unnecessary list-ing of dataframe columns
   for (col in colnames(df)) {
@@ -48,27 +59,30 @@ fix_alleles <- function(ref, alt) {
 }
 
 
-is_sex_chromosome <- function(chr, verbose = FALSE){
-  chrom_prefixes <- c("chr", "Chr", "CHR","chrom", "CHROM", "")
+is_sex_chromosome <- function(chr, verbose = FALSE) {
+  chrom_prefixes <- c("chr", "Chr", "CHR", "chrom", "CHROM", "")
   sex_chromosomes <- c("x", "X", "y", "Y")
   df_chroms <- expand.grid(chrom_prefixes, sex_chromosomes)
   potential_sex_chroms <- paste0(df_chroms[[1]], df_chroms[[2]])
 
-  if(verbose){
-    message("Checking for potential sex chromosomes: ", paste0(potential_sex_chroms, collapse = ", "))
+  if (verbose) {
+    message(
+      "Checking for potential sex chromosomes: ",
+      paste0(potential_sex_chroms, collapse = ", ")
+    )
   }
   chr %in% potential_sex_chroms
 }
 
-relocate <- function(df, cols){
+relocate <- function(df, cols) {
   df[c(cols, setdiff(colnames(df), cols))]
 }
 
-rename <- function(df, map){
+rename <- function(df, map) {
   colnames(df) <- ifelse(
     colnames(df) %in% map,
     yes = names(map)[match(colnames(df), map)],
-    no=colnames(df)
+    no = colnames(df)
   )
   return(df)
 }

@@ -1,10 +1,24 @@
 test_that("parse_vcf_to_sigminer_maf works correctly", {
   path_vcf <- system.file("minimal.snv.vcf", package = "sigstart")
-  df_maf <- parse_vcf_to_sigminer_maf(path_vcf, verbose=FALSE, include = "pass")
-
+  df_maf <- parse_vcf_to_sigminer_maf(
+    path_vcf,
+    verbose = FALSE,
+    include = "pass"
+  )
 
   expect_true(is.data.frame(df_maf))
-  expect_true(all(c("Chromosome", "Tumor_Sample_Barcode", "Reference_Allele", "Tumor_Seq_Allele2", "Start_Position", "End_Position", "Variant_Type") %in% colnames(df_maf)))
+  expect_true(all(
+    c(
+      "Chromosome",
+      "Tumor_Sample_Barcode",
+      "Reference_Allele",
+      "Tumor_Seq_Allele2",
+      "Start_Position",
+      "End_Position",
+      "Variant_Type"
+    ) %in%
+      colnames(df_maf)
+  ))
   expect_equal(unique(df_maf$Tumor_Sample_Barcode), "sample")
 
   # Add a snapshot test
@@ -12,22 +26,61 @@ test_that("parse_vcf_to_sigminer_maf works correctly", {
 })
 
 test_that("parse_vcf_to_sigminer_maf works correctly with tumor_normal samples", {
-  path_vcf <- system.file("tumor_normal.purple.somatic.vcf.gz", package = "sigstart")
+  path_vcf <- system.file(
+    "tumor_normal.purple.somatic.vcf.gz",
+    package = "sigstart"
+  )
 
-  expect_error(parse_vcf_to_sigminer_maf(path_vcf, verbose=FALSE), "VCF contains multiple samples, but `sample_id` has not been supplied")
-  expect_error(parse_vcf_to_sigminer_maf(path_vcf, verbose=FALSE, sample_id = "normal"), "Resulting MAF includes .* variants whose genotype are 0/0")
-  expect_error(parse_vcf_to_sigminer_maf(path_vcf, verbose=FALSE, sample_id = "made_up_sample"), "Valid values include: normal and tumor")
-  expect_error(parse_vcf_to_sigminer_maf(path_vcf, verbose=FALSE, sample_id = "tumor"), NA)
+  expect_error(
+    parse_vcf_to_sigminer_maf(path_vcf, verbose = FALSE),
+    "VCF contains multiple samples, but `sample_id` has not been supplied"
+  )
+  expect_error(
+    parse_vcf_to_sigminer_maf(path_vcf, verbose = FALSE, sample_id = "normal"),
+    "Resulting MAF includes .* variants whose genotype are 0/0"
+  )
+  expect_error(
+    parse_vcf_to_sigminer_maf(
+      path_vcf,
+      verbose = FALSE,
+      sample_id = "made_up_sample"
+    ),
+    "Valid values include: normal and tumor"
+  )
+  expect_error(
+    parse_vcf_to_sigminer_maf(path_vcf, verbose = FALSE, sample_id = "tumor"),
+    NA
+  )
 
-  df_maf <- parse_vcf_to_sigminer_maf(path_vcf, verbose=FALSE, sample_id = "tumor", include = "pass")
-  df_maf_strictpass <- parse_vcf_to_sigminer_maf(path_vcf, verbose=FALSE, sample_id = "tumor", include = "pass_strict")
-
+  df_maf <- parse_vcf_to_sigminer_maf(
+    path_vcf,
+    verbose = FALSE,
+    sample_id = "tumor",
+    include = "pass"
+  )
+  df_maf_strictpass <- parse_vcf_to_sigminer_maf(
+    path_vcf,
+    verbose = FALSE,
+    sample_id = "tumor",
+    include = "pass_strict"
+  )
 
   # MAF is a data.frame
   expect_true(is.data.frame(df_maf))
 
   # MAF has expected names
-  expect_true(all(c("Chromosome", "Tumor_Sample_Barcode", "Reference_Allele", "Tumor_Seq_Allele2", "Start_Position", "End_Position", "Variant_Type") %in% colnames(df_maf)))
+  expect_true(all(
+    c(
+      "Chromosome",
+      "Tumor_Sample_Barcode",
+      "Reference_Allele",
+      "Tumor_Seq_Allele2",
+      "Start_Position",
+      "End_Position",
+      "Variant_Type"
+    ) %in%
+      colnames(df_maf)
+  ))
 
   # MAF has row number
   expect_equal(nrow(df_maf), 404)
@@ -37,7 +90,6 @@ test_that("parse_vcf_to_sigminer_maf works correctly with tumor_normal samples",
   # Add a snapshot test
   expect_snapshot(df_maf)
 })
-
 
 
 # test_that("parse_vcf_to_sigminer_maf works correctly with tumor_normal_rna samples", {
@@ -63,10 +115,10 @@ test_that("parse_tsv_to_sigminer_maf parses a well-formed TSV correctly", {
   # create a minimal in-memory TSV
   df_input <- data.frame(
     Chromosome = c("1", "2", "X"),
-    Position   = c(12345, 23456, 34567),
-    Ref        = c("A", "C", "T"),
-    Alt        = c("T", "G", "C"),
-    Sample     = c("Sample_A", "Sample_B", "Sample_C"),
+    Position = c(12345, 23456, 34567),
+    Ref = c("A", "C", "T"),
+    Alt = c("T", "G", "C"),
+    Sample = c("Sample_A", "Sample_B", "Sample_C"),
     stringsAsFactors = FALSE
   )
 
@@ -107,11 +159,14 @@ test_that("parse_tsv_to_sigminer_maf parses a well-formed TSV correctly", {
 
 
 test_that("parse_tsv_to_sigminer_maf works on annovar files", {
-
   path_annovar <- system.file("annovar.hg38.txt", package = "sigstart")
   df_input <- read.csv(file = path_annovar, header = TRUE, sep = "\t")
 
-  maf <- parse_tsv_to_sigminer_maf(path_annovar, verbose = FALSE, sample_id = "testsample")
+  maf <- parse_tsv_to_sigminer_maf(
+    path_annovar,
+    verbose = FALSE,
+    sample_id = "testsample"
+  )
   # basic structure
   expect_s3_class(maf, "data.frame")
   expect_true(nrow(maf) == nrow(df_input))
@@ -140,7 +195,7 @@ test_that("parse_tsv_to_sigminer_maf works on annovar files", {
 
 test_that("parse_tsv_to_sigminer_maf errors on missing required columns", {
   df_bad <- data.frame(
-    Chromosome = c("1", "2"),  # missing Position, Ref, Alt, Sample
+    Chromosome = c("1", "2"), # missing Position, Ref, Alt, Sample
     stringsAsFactors = FALSE
   )
   tf_bad <- withr::local_tempfile(fileext = ".tsv")
@@ -154,11 +209,11 @@ test_that("parse_tsv_to_sigminer_maf errors on missing required columns", {
 
 test_that("parse_tsv_to_sigminer_maf accepts alternate column names", {
   df_alt <- data.frame(
-    chrom      = c("1", "2"),
-    pos        = c(111, 222),
-    reference  = c("G", "T"),
+    chrom = c("1", "2"),
+    pos = c(111, 222),
+    reference = c("G", "T"),
     alt_alleles = c("A", "C"),
-    sample_id  = c("S1", "S2"),
+    sample_id = c("S1", "S2"),
     stringsAsFactors = FALSE
   )
 
@@ -169,16 +224,19 @@ test_that("parse_tsv_to_sigminer_maf accepts alternate column names", {
 
   # should still map and produce the same minimal MAF structure
   expect_s3_class(maf_alt, "data.frame")
-  expect_true(all(c("Tumor_Sample_Barcode", "Chromosome", "Start_Position") %in% colnames(maf_alt)))
+  expect_true(all(
+    c("Tumor_Sample_Barcode", "Chromosome", "Start_Position") %in%
+      colnames(maf_alt)
+  ))
 })
 
 test_that("parse_tsv_to_sigminer_maf uses supplied sample_id for all rows", {
   # build an in-memory TSV without any Sample column
   df_input <- data.frame(
     Chromosome = c("chr1", "chr2", "chr3"),
-    Position   = c(101, 202, 303),
-    Ref        = c("G", "T", "A"),
-    Alt        = c("A", "C", "G"),
+    Position = c(101, 202, 303),
+    Ref = c("G", "T", "A"),
+    Alt = c("A", "C", "G"),
     stringsAsFactors = FALSE
   )
 
@@ -204,25 +262,62 @@ test_that("parse_tsv_to_sigminer_maf uses supplied sample_id for all rows", {
 
 
 test_that("parse_purple_sv_vcf_to_bedpe works correctly", {
-  path_vcf_sv <- system.file("tumor_normal.purple.somatic.vcf.gz", package = "sigstart")
+  path_vcf_sv <- system.file(
+    "tumor_normal.purple.somatic.vcf.gz",
+    package = "sigstart"
+  )
 
   bedpe <- parse_purple_sv_vcf_to_bedpe(path_vcf_sv)
 
   expect_true(is.data.frame(bedpe))
-  expect_named(bedpe, c("chrom1", "start1", "end1", "chrom2", "start2", "end2", "name", "score", "strand1", "strand2"))
+  expect_named(
+    bedpe,
+    c(
+      "chrom1",
+      "start1",
+      "end1",
+      "chrom2",
+      "start2",
+      "end2",
+      "name",
+      "score",
+      "strand1",
+      "strand2"
+    )
+  )
 
   # Add a snapshot test
   expect_snapshot(bedpe)
 })
 
 test_that("parse_purple_sv_vcf_to_sigminer works correctly", {
-  path_vcf_sv <- system.file("tumor_normal.purple.somatic.vcf.gz", package = "sigstart")
+  path_vcf_sv <- system.file(
+    "tumor_normal.purple.somatic.vcf.gz",
+    package = "sigstart"
+  )
   sample_id <- "Sample"
 
-  sigminer <- parse_purple_sv_vcf_to_sigminer(path_vcf_sv, sample_id = sample_id)
+  sigminer <- parse_purple_sv_vcf_to_sigminer(
+    path_vcf_sv,
+    sample_id = sample_id
+  )
 
   expect_true(is.data.frame(sigminer))
-  expect_true(all(c("Sample", "chr1", "start1", "end1", "chr2", "start2", "end2", "strand1", "strand2", "svclass") %in% colnames(sigminer)))
+  expect_true(all(
+    c(
+      "Sample",
+      "chr1",
+      "start1",
+      "end1",
+      "chr2",
+      "start2",
+      "end2",
+      "strand1",
+      "strand2",
+      "svclass"
+    ) %in%
+      colnames(sigminer)
+  ))
   expect_equal(sigminer$Sample[1], sample_id)
 
   # Add a snapshot test
@@ -233,12 +328,15 @@ test_that("parse_purple_sv_vcf_to_sigminer works correctly", {
 test_that("parse_purple_cnv_to_sigminer works correctly", {
   path_cn <- system.file("purple.cnv.somatic.tsv", package = "sigstart")
 
-  sample_id = "bobby"
+  sample_id <- "bobby"
   expect_error(parse_purple_cnv_to_sigminer(path_cn, sample_id = sample_id), NA)
   sigminer <- parse_purple_cnv_to_sigminer(path_cn, sample_id = sample_id)
 
   expect_true(is.data.frame(sigminer))
-  expect_true(all(c("sample", "Chromosome", "Start.bp", "End.bp", "modal_cn", "minor_cn") %in% colnames(sigminer)))
+  expect_true(all(
+    c("sample", "Chromosome", "Start.bp", "End.bp", "modal_cn", "minor_cn") %in%
+      colnames(sigminer)
+  ))
   expect_true(all(sigminer$sample == sample_id))
 
   # Doesnt include sex chromosomes
@@ -246,22 +344,23 @@ test_that("parse_purple_cnv_to_sigminer works correctly", {
 
   # Expect rowlength
   expect_equal(nrow(sigminer), 206)
-
 })
 
 test_that("parse_purple_cnv_to_sigminer & parse_cnv_to_sigminer work the same", {
-
   # parse_cnv_to_sigminer is a generalised version of parse_purple_cnv_to_sigminer
   # that lets users specify column name mappings and therefore read in any filetype
   # but the default column names are set up for purple
   path_cn <- system.file("purple.cnv.somatic.tsv", package = "sigstart")
 
-  sample_id = "bobby"
-  sigminer_purple_cnv <- expect_no_error(parse_purple_cnv_to_sigminer(path_cn, sample_id = sample_id))
-  sigminer_cnv <- expect_no_error(parse_cnv_to_sigminer(path_cn, sample_id = sample_id))
+  sample_id <- "bobby"
+  sigminer_purple_cnv <- expect_no_error(parse_purple_cnv_to_sigminer(
+    path_cn,
+    sample_id = sample_id
+  ))
+  sigminer_cnv <- expect_no_error(parse_cnv_to_sigminer(
+    path_cn,
+    sample_id = sample_id
+  ))
 
   expect_equal(sigminer_purple_cnv, sigminer_cnv)
 })
-
-
-

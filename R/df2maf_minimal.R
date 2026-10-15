@@ -1,4 +1,3 @@
-
 #' Convert VCF-like data.frame to MAF
 #'
 #' Converts a VEP-like (chr-pos-ref-alt-consequence-sample style) dataframe with to a minimal MAF dataframe.
@@ -33,24 +32,25 @@
 #' @return a maf-like data.frame (data.table)
 #'
 #' @keywords internal
-df2maf_minimal <- function(data,
-                           ref_genome,
-                           keep_all = TRUE,
-                           col_chrom = "chr",
-                           col_pos = "pos",
-                           col_sample_identifier = "sample",
-                           col_ref = "ref",
-                           col_alt = "alt",
-                           missing_to_silent = FALSE,
-                           col_center = NULL,
-                           col_entrez_gene_id = NULL,
-                           col_dbSNP_rsid = NULL,
-                           col_dbSNP_validation_status = NULL,
-                           col_matched_normal_sample_identifier = NULL,
-                           col_sequencer = NULL,
-                           col_sequence_source = NULL,
-                           verbose = TRUE){
-
+df2maf_minimal <- function(
+  data,
+  ref_genome,
+  keep_all = TRUE,
+  col_chrom = "chr",
+  col_pos = "pos",
+  col_sample_identifier = "sample",
+  col_ref = "ref",
+  col_alt = "alt",
+  missing_to_silent = FALSE,
+  col_center = NULL,
+  col_entrez_gene_id = NULL,
+  col_dbSNP_rsid = NULL,
+  col_dbSNP_validation_status = NULL,
+  col_matched_normal_sample_identifier = NULL,
+  col_sequencer = NULL,
+  col_sequence_source = NULL,
+  verbose = TRUE
+) {
   # Assertions
   assertions::assert_dataframe(data)
   assertions::assert_string(col_chrom)
@@ -58,14 +58,23 @@ df2maf_minimal <- function(data,
   assertions::assert_string(col_sample_identifier)
   assertions::assert_string(col_ref)
   assertions::assert_string(col_alt)
-  assertions::assert_names_include(data, names = c(col_chrom, col_pos, col_sample_identifier, col_ref, col_alt))
+  assertions::assert_names_include(
+    data,
+    names = c(col_chrom, col_pos, col_sample_identifier, col_ref, col_alt)
+  )
   assertions::assert_string(ref_genome)
   assertions::assert_flag(keep_all)
   assertions::assert_flag(missing_to_silent)
   assertions::assert_flag(verbose)
 
   old_names <- c(col_chrom, col_pos, col_sample_identifier, col_ref, col_alt)
-  new_names <- c("Chromosome", "Position_1based", "Tumor_Sample_Barcode", "Reference_Allele", "Tumor_Seq_Allele2")
+  new_names <- c(
+    "Chromosome",
+    "Position_1based",
+    "Tumor_Sample_Barcode",
+    "Reference_Allele",
+    "Tumor_Seq_Allele2"
+  )
 
   # Eliminate no visible global binding
   Reference_Allele <- NULL
@@ -129,23 +138,47 @@ df2maf_minimal <- function(data,
   # Sequence_Source
   if (!is.null(col_sequence_source)) {
     valid_sequence_sources <- c(
-      "WGS", "WGA", "WXS", "RNA-Seq", "miRNA-Seq", "Bisulfite-Seq",
-      "VALIDATION", "Other", "ncRNA-Seq", "WCS", "CLONE", "POOLCLONE",
-      "AMPLICON", "CLONEEND", "FINISHING", "ChIP-Seq", "MNase-Seq",
-      "DNase-Hypersensitivity", "EST", "FL-cDNA", "CTS", "MRE-Seq",
-      "MeDIP-Seq", "MBD-Seq", "Tn-Seq", "FAIRE-seq", "SELEX", "RIP-Seq",
+      "WGS",
+      "WGA",
+      "WXS",
+      "RNA-Seq",
+      "miRNA-Seq",
+      "Bisulfite-Seq",
+      "VALIDATION",
+      "Other",
+      "ncRNA-Seq",
+      "WCS",
+      "CLONE",
+      "POOLCLONE",
+      "AMPLICON",
+      "CLONEEND",
+      "FINISHING",
+      "ChIP-Seq",
+      "MNase-Seq",
+      "DNase-Hypersensitivity",
+      "EST",
+      "FL-cDNA",
+      "CTS",
+      "MRE-Seq",
+      "MeDIP-Seq",
+      "MBD-Seq",
+      "Tn-Seq",
+      "FAIRE-seq",
+      "SELEX",
+      "RIP-Seq",
       "ChIA-PET"
     )
 
     assertions::assert_string(col_sequence_source)
     assertions::assert_names_include(data, col_sequence_source)
-    assertions::assert_subset(data[[col_sequence_source]], valid_sequence_sources)
+    assertions::assert_subset(
+      data[[col_sequence_source]],
+      valid_sequence_sources
+    )
 
     old_names <- c(old_names, col_sequence_source)
     new_names <- c(new_names, "Sequence_Source")
   }
-
-
 
   # Create Data.Table
   dt_maf <- data.table::data.table(data)
@@ -164,7 +197,10 @@ df2maf_minimal <- function(data,
   dt_maf[, "Alt_Length" := nchar(Tumor_Seq_Allele2)]
 
   # Standardise Ref and Alt allele representations, and fix Lengths & Positions
-  df_fixed <- fix_alleles(ref = dt_maf[["Reference_Allele"]], alt = dt_maf[["Tumor_Seq_Allele2"]])
+  df_fixed <- fix_alleles(
+    ref = dt_maf[["Reference_Allele"]],
+    alt = dt_maf[["Tumor_Seq_Allele2"]]
+  )
   dt_maf[, "Ref_Length" := Ref_Length - df_fixed[["numdropped"]]]
   dt_maf[, "Alt_Length" := Alt_Length - df_fixed[["numdropped"]]]
   dt_maf[, "Position_1based" := Position_1based + df_fixed[["numdropped"]]]
@@ -172,49 +208,62 @@ df2maf_minimal <- function(data,
   dt_maf[, "Tumor_Seq_Allele2" := df_fixed[["alt"]]]
 
   # Calculate Start_Position, End_Position, Variant_Types and Inframe status
-  dt_maf[, "Start_Position" := data.table::fcase(
-    # SNPs
-    Ref_Length == Alt_Length, Position_1based,
-    # Insertions (potentially with '-' Reference Alleles)
-    Ref_Length < Alt_Length, ifelse(Reference_Allele == "-", yes = Position_1based - 1, Position_1based),
-    # Deletions
-    Ref_Length > Alt_Length, Position_1based,
-    TRUE, stop("non-explicitly handled mutation type")
-  )]
-  dt_maf[, "End_Position" := data.table::fcase(
-    # SNPs
-    Ref_Length == Alt_Length, Position_1based + Alt_Length - 1,
-    # Insertions (potentially with '-' Reference Alleles)
-    Ref_Length < Alt_Length, ifelse(Reference_Allele == "-", yes = Position_1based, no = Position_1based + Ref_Length - 1),
-    # Deletions
-    Ref_Length > Alt_Length, Position_1based + Ref_Length - 1,
-    TRUE, stop("non-explicitly handled mutation type")
-  )]
-  dt_maf[, "Inframe" := data.table::fcase(
-    Ref_Length == Alt_Length, TRUE,
-    abs(Ref_Length - Alt_Length) %% 3 == 0, TRUE,
-    default = FALSE
-  )]
-  dt_maf[, "Variant_Type" := data.table::fcase(
-    # SNPs
-    Ref_Length == Alt_Length & Alt_Length == 1, "SNP",
-    Ref_Length == Alt_Length & Alt_Length == 2, "DNP",
-    Ref_Length == Alt_Length & Alt_Length == 3, "TNP",
-    Ref_Length == Alt_Length & Alt_Length > 3, "ONP",
-    # Insertions (potentially with '-' Reference Alleles)
-    Ref_Length < Alt_Length, "INS",
-    # Deletions
-    Ref_Length > Alt_Length, "DEL",
-    TRUE, stop("non-explicitly handled mutation type")
-  )]
+  dt_maf[,
+    "Start_Position" := data.table::fcase(
+      # SNPs
+      Ref_Length == Alt_Length , Position_1based                                                             ,
+      # Insertions (potentially with '-' Reference Alleles)
+      Ref_Length < Alt_Length  , ifelse(Reference_Allele == "-", yes = Position_1based - 1, Position_1based) ,
+      # Deletions
+      Ref_Length > Alt_Length  , Position_1based                                                             ,
+      TRUE                     , stop("non-explicitly handled mutation type")
+    )
+  ]
+  dt_maf[,
+    "End_Position" := data.table::fcase(
+      # SNPs
+      Ref_Length == Alt_Length , Position_1based + Alt_Length - 1                                                              ,
+      # Insertions (potentially with '-' Reference Alleles)
+      Ref_Length < Alt_Length  , ifelse(Reference_Allele == "-", yes = Position_1based, no = Position_1based + Ref_Length - 1) ,
+      # Deletions
+      Ref_Length > Alt_Length  , Position_1based + Ref_Length - 1                                                              ,
+      TRUE                     , stop("non-explicitly handled mutation type")
+    )
+  ]
+  dt_maf[,
+    "Inframe" := data.table::fcase(
+      Ref_Length == Alt_Length               , TRUE ,
+      abs(Ref_Length - Alt_Length) %% 3 == 0 , TRUE ,
+      default = FALSE
+    )
+  ]
+  dt_maf[,
+    "Variant_Type" := data.table::fcase(
+      # SNPs
+      Ref_Length == Alt_Length & Alt_Length == 1 , "SNP"                                        ,
+      Ref_Length == Alt_Length & Alt_Length == 2 , "DNP"                                        ,
+      Ref_Length == Alt_Length & Alt_Length == 3 , "TNP"                                        ,
+      Ref_Length == Alt_Length & Alt_Length > 3  , "ONP"                                        ,
+      # Insertions (potentially with '-' Reference Alleles)
+      Ref_Length < Alt_Length                    , "INS"                                        ,
+      # Deletions
+      Ref_Length > Alt_Length                    , "DEL"                                        ,
+      TRUE                                       , stop("non-explicitly handled mutation type")
+    )
+  ]
 
   # Add reference genome
   dt_maf[, "NCBI_Build" := ref_genome]
 
-
   if (!keep_all) {
     # cli::cli_alert_info("Dropping all non-essential columns without explicit mapping")
-    colnames <- c(new_names, "NCBI_Build", "Start_Position", "End_Position", "Variant_Type")
+    colnames <- c(
+      new_names,
+      "NCBI_Build",
+      "Start_Position",
+      "End_Position",
+      "Variant_Type"
+    )
     colnames <- colnames[colnames != "Position_1based"]
     dt_maf <- dt_maf[, colnames, with = FALSE]
   }
@@ -242,11 +291,20 @@ fix_alleles_scalar <- function(ref, alt) {
   #assertions::assert_string(alt)
 
   numdropped <- 0
-  while (nchar(ref) != 0 & nchar(alt) != 0 & substr(ref, 1, 1) == substr(alt, 1, 1) & ref != alt) {
+  while (
+    nchar(ref) != 0 &
+      nchar(alt) != 0 &
+      substr(ref, 1, 1) == substr(alt, 1, 1) &
+      ref != alt
+  ) {
     ref <- substr(ref, 2, nchar(ref))
     alt <- substr(alt, 2, nchar(alt))
-    if (nchar(ref) == 0) ref <- "-"
-    if (nchar(alt) == 0) alt <- "-"
+    if (nchar(ref) == 0) {
+      ref <- "-"
+    }
+    if (nchar(alt) == 0) {
+      alt <- "-"
+    }
     numdropped <- numdropped + 1
   }
 
@@ -268,7 +326,10 @@ fix_alleles <- function(ref, alt) {
     )
   })
 
-  df <- as.data.frame(do.call(rbind, ls_fixed_alleles), stringsAsFactors = FALSE)
+  df <- as.data.frame(
+    do.call(rbind, ls_fixed_alleles),
+    stringsAsFactors = FALSE
+  )
 
   # Remove unnecessary list-ing of dataframe columns
   for (col in colnames(df)) {
@@ -288,35 +349,133 @@ fix_alleles <- function(ref, alt) {
 #'
 #' @keywords internal
 #'
-valid_maf_columns <- function(){
+valid_maf_columns <- function() {
   c(
-    "Hugo_Symbol", "Entrez_Gene_Id", "Center", "NCBI_Build", "Chromosome",
-    "Start_Position", "End_Position", "Strand", "Variant_Classification",
-    "Variant_Type", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2",
-    "dbSNP_RS", "dbSNP_Val_Status", "Tumor_Sample_Barcode",
-    "Matched_Norm_Sample_Barcode", "Match_Norm_Seq_Allele1", "Match_Norm_Seq_Allele2",
-    "Tumor_Validation_Allele1", "Tumor_Validation_Allele2",
-    "Match_Norm_Validation_Allele1", "Match_Norm_Validation_Allele2",
-    "Verification_Status", "Validation_Status", "Mutation_Status",
-    "Sequencing_Phase", "Sequence_Source", "Validation_Method", "Score",
-    "BAM_File", "Sequencer", "Tumor_Sample_UUID", "Matched_Norm_Sample_UUID",
-    "HGVSc", "HGVSp", "HGVSp_Short", "Transcript_ID", "Exon_Number",
-    "t_depth", "t_ref_count", "t_alt_count", "n_depth", "n_ref_count",
-    "n_alt_count", "all_effects", "Allele", "Gene", "Feature", "Feature_type",
-    "One_Consequence", "Consequence", "cDNA_position", "CDS_position",
-    "Protein_position", "Amino_acids", "Codons", "Existing_variation",
-    "ALLELE_NUM", "DISTANCE", "TRANSCRIPT_STRAND", "SYMBOL", "SYMBOL_SOURCE",
-    "HGNC_ID", "BIOTYPE", "CANONICAL", "CCDS", "ENSP", "SWISSPROT", "TREMBL",
-    "UNIPARC", "RefSeq", "SIFT", "PolyPhen", "EXON", "INTRON", "DOMAINS", "GMAF",
-    "AFR_MAF", "AMR_MAF", "ASN_MAF", "EAS_MAF", "EUR_MAF", "SAS_MAF", "AA_MAF",
-    "EA_MAF", "CLIN_SIG", "SOMATIC", "PUBMED", "MOTIF_NAME", "MOTIF_POS",
-    "HIGH_INF_POS", "MOTIF_SCORE_CHANGE", "IMPACT", "PICK", "VARIANT_CLASS",
-    "TSL", "HGVS_OFFSET", "PHENO", "MINIMISED", "ExAC_AF", "ExAC_AF_Adj",
-    "ExAC_AF_AFR", "ExAC_AF_AMR", "ExAC_AF_EAS", "ExAC_AF_FIN", "ExAC_AF_NFE",
-    "ExAC_AF_OTH", "ExAC_AF_SAS", "GENE_PHENO", "FILTER", "CONTEXT",
-    "src_vcf_id", "tumor_bam_uuid", "normal_bam_uuid", "case_id", "GDC_FILTER",
-    "COSMIC", "MC3_Overlap", "GDC_Validation_Status", "GDC_Valid_Somatic",
-    "vcf_region", "vcf_info", "vcf_format", "vcf_tumor_gt", "vcf_normal_gt"
+    "Hugo_Symbol",
+    "Entrez_Gene_Id",
+    "Center",
+    "NCBI_Build",
+    "Chromosome",
+    "Start_Position",
+    "End_Position",
+    "Strand",
+    "Variant_Classification",
+    "Variant_Type",
+    "Reference_Allele",
+    "Tumor_Seq_Allele1",
+    "Tumor_Seq_Allele2",
+    "dbSNP_RS",
+    "dbSNP_Val_Status",
+    "Tumor_Sample_Barcode",
+    "Matched_Norm_Sample_Barcode",
+    "Match_Norm_Seq_Allele1",
+    "Match_Norm_Seq_Allele2",
+    "Tumor_Validation_Allele1",
+    "Tumor_Validation_Allele2",
+    "Match_Norm_Validation_Allele1",
+    "Match_Norm_Validation_Allele2",
+    "Verification_Status",
+    "Validation_Status",
+    "Mutation_Status",
+    "Sequencing_Phase",
+    "Sequence_Source",
+    "Validation_Method",
+    "Score",
+    "BAM_File",
+    "Sequencer",
+    "Tumor_Sample_UUID",
+    "Matched_Norm_Sample_UUID",
+    "HGVSc",
+    "HGVSp",
+    "HGVSp_Short",
+    "Transcript_ID",
+    "Exon_Number",
+    "t_depth",
+    "t_ref_count",
+    "t_alt_count",
+    "n_depth",
+    "n_ref_count",
+    "n_alt_count",
+    "all_effects",
+    "Allele",
+    "Gene",
+    "Feature",
+    "Feature_type",
+    "One_Consequence",
+    "Consequence",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "ALLELE_NUM",
+    "DISTANCE",
+    "TRANSCRIPT_STRAND",
+    "SYMBOL",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "BIOTYPE",
+    "CANONICAL",
+    "CCDS",
+    "ENSP",
+    "SWISSPROT",
+    "TREMBL",
+    "UNIPARC",
+    "RefSeq",
+    "SIFT",
+    "PolyPhen",
+    "EXON",
+    "INTRON",
+    "DOMAINS",
+    "GMAF",
+    "AFR_MAF",
+    "AMR_MAF",
+    "ASN_MAF",
+    "EAS_MAF",
+    "EUR_MAF",
+    "SAS_MAF",
+    "AA_MAF",
+    "EA_MAF",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "IMPACT",
+    "PICK",
+    "VARIANT_CLASS",
+    "TSL",
+    "HGVS_OFFSET",
+    "PHENO",
+    "MINIMISED",
+    "ExAC_AF",
+    "ExAC_AF_Adj",
+    "ExAC_AF_AFR",
+    "ExAC_AF_AMR",
+    "ExAC_AF_EAS",
+    "ExAC_AF_FIN",
+    "ExAC_AF_NFE",
+    "ExAC_AF_OTH",
+    "ExAC_AF_SAS",
+    "GENE_PHENO",
+    "FILTER",
+    "CONTEXT",
+    "src_vcf_id",
+    "tumor_bam_uuid",
+    "normal_bam_uuid",
+    "case_id",
+    "GDC_FILTER",
+    "COSMIC",
+    "MC3_Overlap",
+    "GDC_Validation_Status",
+    "GDC_Valid_Somatic",
+    "vcf_region",
+    "vcf_info",
+    "vcf_format",
+    "vcf_tumor_gt",
+    "vcf_normal_gt"
   )
-
 }

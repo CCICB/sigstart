@@ -1,5 +1,13 @@
-utils::globalVariables(c("Alt_Length", "FILTER", "Position_1based", "Ref_Length", "Reference_Allele",
-                         "Tumor_Seq_Allele2", "name", "score"))
+utils::globalVariables(c(
+  "Alt_Length",
+  "FILTER",
+  "Position_1based",
+  "Ref_Length",
+  "Reference_Allele",
+  "Tumor_Seq_Allele2",
+  "name",
+  "score"
+))
 
 
 #' Convert VCFs into Sigminer-compatible MAF object
@@ -34,12 +42,12 @@ utils::globalVariables(c("Alt_Length", "FILTER", "Position_1based", "Ref_Length"
 #' path_vcf_snv <- system.file("minimal.snv.vcf", package = "sigstart")
 #' parse_vcf_to_sigminer_maf(path_vcf_snv)
 parse_vcf_to_sigminer_maf <- function(
-    vcf_snv,
-    sample_id = NULL,
-    include = c("pass", "pass_strict", "all"),
-    allow_multisample = FALSE,
-    verbose = FALSE
-){
+  vcf_snv,
+  sample_id = NULL,
+  include = c("pass", "pass_strict", "all"),
+  allow_multisample = FALSE,
+  verbose = FALSE
+) {
   assertions::assert_file_exists(vcf_snv)
   include <- rlang::arg_match(include)
 
@@ -47,51 +55,80 @@ parse_vcf_to_sigminer_maf <- function(
   samples <- colnames(vcf@gt)[-1]
   nsamples <- length(samples)
 
-  if(verbose) cli::cli_alert_info("Found {nsamples} samples described in the VCF [{samples}]")
+  if (verbose) {
+    cli::cli_alert_info(
+      "Found {nsamples} samples described in the VCF [{samples}]"
+    )
+  }
 
   # Ensure VCF is a 2-sample tumour-normal or 1-sample tumor only
-  if(!allow_multisample){
-    assertions::assert(nsamples <= 2, msg = "{.code parse_vcf_to_sigminer_maf} does not currently support VCFs with > 2 samples [{nsamples} samples were found]. We expect either 1-sample tumor-only VCFs or 2-sample tumour-normal VCFs (the latter requires tumor sample ID is specified by user supplying the {.arg sample_id} argument.")
+  if (!allow_multisample) {
+    assertions::assert(
+      nsamples <= 2,
+      msg = "{.code parse_vcf_to_sigminer_maf} does not currently support VCFs with > 2 samples [{nsamples} samples were found]. We expect either 1-sample tumor-only VCFs or 2-sample tumour-normal VCFs (the latter requires tumor sample ID is specified by user supplying the {.arg sample_id} argument."
+    )
   }
 
   # If VSC is a 2-sample tumour-normal, ensure sample_id is specified (so we can pull out just the tumour)
-  if(nsamples > 1 & is.null(sample_id)){
-    cli::cli_abort("VCF contains multiple samples, but {.arg sample_id} has not been supplied to indicate which is the tumor sample")
+  if (nsamples > 1 & is.null(sample_id)) {
+    cli::cli_abort(
+      "VCF contains multiple samples, but {.arg sample_id} has not been supplied to indicate which is the tumor sample"
+    )
   }
 
   # Filter VCF to describe only the tumour sample
-  if(!is.null(sample_id)){
+  if (!is.null(sample_id)) {
     assertions::assert_string(sample_id)
     assertions::assert_subset(sample_id, samples)
 
-    if(verbose) cli::cli_alert_info("Returning data for only sample [{sample_id}] samples in format column of VCF.")
+    if (verbose) {
+      cli::cli_alert_info(
+        "Returning data for only sample [{sample_id}] samples in format column of VCF."
+      )
+    }
 
     vcf <- vcf[sample = sample_id]
   }
 
-
-  if(nsamples == 0){
-    cli::cli_abort("No samples could be found in the VCF {.path {vcf_snv}}. We do not currently support VCFs where genotype columns are missing")
+  if (nsamples == 0) {
+    cli::cli_abort(
+      "No samples could be found in the VCF {.path {vcf_snv}}. We do not currently support VCFs where genotype columns are missing"
+    )
   }
 
-  df_vcf <- vcfR::vcfR2tidy(vcf, verbose=FALSE, single_frame = TRUE,toss_INFO_column = TRUE)[["dat"]]
+  df_vcf <- vcfR::vcfR2tidy(
+    vcf,
+    verbose = FALSE,
+    single_frame = TRUE,
+    toss_INFO_column = TRUE
+  )[["dat"]]
 
-  if(include == "pass")
+  if (include == "pass") {
     # Include FILTER = PASS / missing (e.g. `.`)
     # Note that vcfR parses '.' to NA_character
     df_vcf <- dplyr::filter(df_vcf, FILTER %in% c("PASS", ".", NA_character_))
-  else if(include == "pass_strict")
+  } else if (include == "pass_strict") {
     df_vcf <- dplyr::filter(df_vcf, FILTER == "PASS")
-  else if(include == "all") {
+  } else if (include == "all") {
     # Don't subset data at all
+  } else {
+    stop(
+      "`include` = [",
+      include,
+      "] is not supported. Please open an issue on github and include this error message"
+    )
   }
-  else
-    stop("`include` = [", include, "] is not supported. Please open an issue on github and include this error message")
 
   dt_maf <- data.table::data.table(df_vcf)
 
   old_names <- c("CHROM", "POS", "Indiv", "REF", "ALT")
-  new_names <- c("Chromosome", "Position_1based", "Tumor_Sample_Barcode", "Reference_Allele", "Tumor_Seq_Allele2")
+  new_names <- c(
+    "Chromosome",
+    "Position_1based",
+    "Tumor_Sample_Barcode",
+    "Reference_Allele",
+    "Tumor_Seq_Allele2"
+  )
 
   # Rename Columns
   data.table::setnames(
@@ -105,7 +142,10 @@ parse_vcf_to_sigminer_maf <- function(
   dt_maf[, "Alt_Length" := nchar(Tumor_Seq_Allele2)]
 
   # Standardise Ref and Alt allele representations, and fix Lengths & Positions
-  df_fixed <- fix_alleles(ref = dt_maf[["Reference_Allele"]], alt = dt_maf[["Tumor_Seq_Allele2"]])
+  df_fixed <- fix_alleles(
+    ref = dt_maf[["Reference_Allele"]],
+    alt = dt_maf[["Tumor_Seq_Allele2"]]
+  )
   dt_maf[, "Ref_Length" := Ref_Length - df_fixed[["numdropped"]]]
   dt_maf[, "Alt_Length" := Alt_Length - df_fixed[["numdropped"]]]
   dt_maf[, "Position_1based" := Position_1based + df_fixed[["numdropped"]]]
@@ -113,45 +153,56 @@ parse_vcf_to_sigminer_maf <- function(
   dt_maf[, "Tumor_Seq_Allele2" := df_fixed[["alt"]]]
 
   # Calculate Start_Position, End_Position, Variant_Types and Inframe status
-  dt_maf[, "Start_Position" := data.table::fcase(
-    # SNPs
-    Ref_Length == Alt_Length, Position_1based,
-    # Insertions (potentially with '-' Reference Alleles)
-    Ref_Length < Alt_Length, ifelse(Reference_Allele == "-", yes = Position_1based - 1, Position_1based),
-    # Deletions
-    Ref_Length > Alt_Length, Position_1based,
-    TRUE, stop("non-explicitly handled mutation type")
-  )]
-  dt_maf[, "End_Position" := data.table::fcase(
-    # SNPs
-    Ref_Length == Alt_Length, Position_1based + Alt_Length - 1,
-    # Insertions (potentially with '-' Reference Alleles)
-    Ref_Length < Alt_Length, ifelse(Reference_Allele == "-", yes = Position_1based, no = Position_1based + Ref_Length - 1),
-    # Deletions
-    Ref_Length > Alt_Length, Position_1based + Ref_Length - 1,
-    TRUE, stop("non-explicitly handled mutation type")
-  )]
-  dt_maf[, "Inframe" := data.table::fcase(
-    Ref_Length == Alt_Length, TRUE,
-    abs(Ref_Length - Alt_Length) %% 3 == 0, TRUE,
-    default = FALSE
-  )]
-  dt_maf[, "Variant_Type" := data.table::fcase(
-    # SNPs
-    Ref_Length == Alt_Length & Alt_Length == 1, "SNP",
-    Ref_Length == Alt_Length & Alt_Length == 2, "DNP",
-    Ref_Length == Alt_Length & Alt_Length == 3, "TNP",
-    Ref_Length == Alt_Length & Alt_Length > 3, "ONP",
-    # Insertions (potentially with '-' Reference Alleles)
-    Ref_Length < Alt_Length, "INS",
-    # Deletions
-    Ref_Length > Alt_Length, "DEL",
-    TRUE, stop("non-explicitly handled mutation type")
-  )]
+  dt_maf[,
+    "Start_Position" := data.table::fcase(
+      # SNPs
+      Ref_Length == Alt_Length , Position_1based                                                             ,
+      # Insertions (potentially with '-' Reference Alleles)
+      Ref_Length < Alt_Length  , ifelse(Reference_Allele == "-", yes = Position_1based - 1, Position_1based) ,
+      # Deletions
+      Ref_Length > Alt_Length  , Position_1based                                                             ,
+      TRUE                     , stop("non-explicitly handled mutation type")
+    )
+  ]
+  dt_maf[,
+    "End_Position" := data.table::fcase(
+      # SNPs
+      Ref_Length == Alt_Length , Position_1based + Alt_Length - 1                                                              ,
+      # Insertions (potentially with '-' Reference Alleles)
+      Ref_Length < Alt_Length  , ifelse(Reference_Allele == "-", yes = Position_1based, no = Position_1based + Ref_Length - 1) ,
+      # Deletions
+      Ref_Length > Alt_Length  , Position_1based + Ref_Length - 1                                                              ,
+      TRUE                     , stop("non-explicitly handled mutation type")
+    )
+  ]
+  dt_maf[,
+    "Inframe" := data.table::fcase(
+      Ref_Length == Alt_Length               , TRUE ,
+      abs(Ref_Length - Alt_Length) %% 3 == 0 , TRUE ,
+      default = FALSE
+    )
+  ]
+  dt_maf[,
+    "Variant_Type" := data.table::fcase(
+      # SNPs
+      Ref_Length == Alt_Length & Alt_Length == 1 , "SNP"                                        ,
+      Ref_Length == Alt_Length & Alt_Length == 2 , "DNP"                                        ,
+      Ref_Length == Alt_Length & Alt_Length == 3 , "TNP"                                        ,
+      Ref_Length == Alt_Length & Alt_Length > 3  , "ONP"                                        ,
+      # Insertions (potentially with '-' Reference Alleles)
+      Ref_Length < Alt_Length                    , "INS"                                        ,
+      # Deletions
+      Ref_Length > Alt_Length                    , "DEL"                                        ,
+      TRUE                                       , stop("non-explicitly handled mutation type")
+    )
+  ]
 
-  if("gt_GT" %in% colnames(dt_maf)){
+  if ("gt_GT" %in% colnames(dt_maf)) {
     n_hom_ref_variants <- sum(stats::na.omit(dt_maf[["gt_GT"]]) == "0/0")
-    assertions::assert(n_hom_ref_variants == 0, msg = "Resulting MAF includes [{n_hom_ref_variants}] variants whose genotype are 0/0 (homozygous ref). Are you sure you've supplied an appropriate VCF file and {.arg sample_id} is truly a tumour sample?")
+    assertions::assert(
+      n_hom_ref_variants == 0,
+      msg = "Resulting MAF includes [{n_hom_ref_variants}] variants whose genotype are 0/0 (homozygous ref). Are you sure you've supplied an appropriate VCF file and {.arg sample_id} is truly a tumour sample?"
+    )
   }
 
   # Braces ensure print on next output to console
@@ -187,58 +238,121 @@ parse_vcf_to_sigminer_maf <- function(
 #' path_tsv_single_sample <- system.file("snvs_indels.singlesample.tsv", package = "sigstart")
 #' maf <- parse_tsv_to_sigminer_maf(path_tsv_single_sample, sample_id = "Sample A")
 #'
-parse_tsv_to_sigminer_maf <- function(file, ref_genome = "uncertain", sep = "\t", sample_id = NULL, verbose = FALSE){
+parse_tsv_to_sigminer_maf <- function(
+  file,
+  ref_genome = "uncertain",
+  sep = "\t",
+  sample_id = NULL,
+  verbose = FALSE
+) {
   assertions::assert_file_exists(file)
 
   df_tsv <- utils::read.csv(file, header = TRUE, sep = sep)
 
   observed_column_names <- colnames(df_tsv)
 
-  col_chrom <- identify_matching_in_order(observed_column_names, patterns = c("^chromosome$", "^chrom$", "^#chrom", "^chr"))
-  col_pos <- identify_matching_in_order(observed_column_names, patterns = c("^position$", "^pos$", "^start_position$", "start"))
-  col_ref <- identify_matching_in_order(observed_column_names, patterns = c("^ref$", "^reference$", "^reference_allele"))
-  col_alt <- identify_matching_in_order(observed_column_names, patterns = c("^alt$", "^alternative_alleles?$", "^alt_alleles?", "tumor_seq_allele2"))
+  col_chrom <- identify_matching_in_order(
+    observed_column_names,
+    patterns = c("^chromosome$", "^chrom$", "^#chrom", "^chr")
+  )
+  col_pos <- identify_matching_in_order(
+    observed_column_names,
+    patterns = c("^position$", "^pos$", "^start_position$", "start")
+  )
+  col_ref <- identify_matching_in_order(
+    observed_column_names,
+    patterns = c("^ref$", "^reference$", "^reference_allele")
+  )
+  col_alt <- identify_matching_in_order(
+    observed_column_names,
+    patterns = c(
+      "^alt$",
+      "^alternative_alleles?$",
+      "^alt_alleles?",
+      "tumor_seq_allele2"
+    )
+  )
 
+  assertions::assert_no_missing(
+    col_chrom,
+    msg = "Could not find required column: [Chromosome] in file {.path {file}}. Please add column and retry"
+  )
+  assertions::assert_no_missing(
+    col_pos,
+    msg = "Could not find required column: [Position] in file {.path {file}}. Please add column and retry"
+  )
+  assertions::assert_no_missing(
+    col_ref,
+    msg = "Could not find required column: [Ref] in file {.path {file}}. Please add column and retry"
+  )
+  assertions::assert_no_missing(
+    col_alt,
+    msg = "Could not find required column: [Alt] in file {.path {file}}. Please add column and retry"
+  )
 
-  assertions::assert_no_missing(col_chrom, msg = "Could not find required column: [Chromosome] in file {.path {file}}. Please add column and retry")
-  assertions::assert_no_missing(col_pos, msg = "Could not find required column: [Position] in file {.path {file}}. Please add column and retry")
-  assertions::assert_no_missing(col_ref, msg = "Could not find required column: [Ref] in file {.path {file}}. Please add column and retry")
-  assertions::assert_no_missing(col_alt, msg = "Could not find required column: [Alt] in file {.path {file}}. Please add column and retry")
-
-  if(is.null(sample_id)){
+  if (is.null(sample_id)) {
     # If no sample_id has been supplied, search TSV for columns that might contain sampleIDs
-    col_sample <- identify_matching_in_order(observed_column_names, patterns = c("^sample$", "^sample_id$", "^tumou?r_sample_barcode$"))
-    assertions::assert_no_missing(col_sample, msg = "Could not find required column: [Sample] in file {.path {file}}. Please add column and retry OR if file describes a single sample, use {.code sample_id} argument to manually set sample identifier")
+    col_sample <- identify_matching_in_order(
+      observed_column_names,
+      patterns = c("^sample$", "^sample_id$", "^tumou?r_sample_barcode$")
+    )
+    assertions::assert_no_missing(
+      col_sample,
+      msg = "Could not find required column: [Sample] in file {.path {file}}. Please add column and retry OR if file describes a single sample, use {.code sample_id} argument to manually set sample identifier"
+    )
 
-    if(verbose){
-      cli::cli_alert_success("Required headers found [chromosome: {col_chrom}, sample: {col_sample}, position: {col_pos}, ref: {col_ref}, alt: {col_alt}]")
+    if (verbose) {
+      cli::cli_alert_success(
+        "Required headers found [chromosome: {col_chrom}, sample: {col_sample}, position: {col_pos}, ref: {col_ref}, alt: {col_alt}]"
+      )
     }
-  }
-  else{
+  } else {
     # If sample_id has been supplied, create a new 'Sample'  column where all values = sample_id
     assertions::assert_string(sample_id)
     df_tsv[["Sample"]] <- sample_id
-    col_sample = "Sample"
+    col_sample <- "Sample"
 
-    if(verbose){
-      cli::cli_alert_success("Required headers found [chromosome: {col_chrom}, position: {col_pos}, ref: {col_ref}, alt: {col_alt}]")
-      cli::cli_alert_info("Manually creating Tumor_Sample_Barcode column and setting to '{sample_id}'")
+    if (verbose) {
+      cli::cli_alert_success(
+        "Required headers found [chromosome: {col_chrom}, position: {col_pos}, ref: {col_ref}, alt: {col_alt}]"
+      )
+      cli::cli_alert_info(
+        "Manually creating Tumor_Sample_Barcode column and setting to '{sample_id}'"
+      )
     }
   }
 
   # Convert to MAF
-  df_maf <- df2maf_minimal(df_tsv, ref_genome = ref_genome, col_chrom = col_chrom, col_sample_identifier = col_sample, col_pos = col_pos, col_ref = col_ref, col_alt = col_alt)
+  df_maf <- df2maf_minimal(
+    df_tsv,
+    ref_genome = ref_genome,
+    col_chrom = col_chrom,
+    col_sample_identifier = col_sample,
+    col_pos = col_pos,
+    col_ref = col_ref,
+    col_alt = col_alt
+  )
 
   # Return MAF
   return(df_maf)
 }
 
 # Searches char vector for each regex pattern patterns vector until it finds a hit. Returns value of hit
-identify_matching_in_order <- function(char, patterns, ignore.case=TRUE, perl=TRUE){
-
+identify_matching_in_order <- function(
+  char,
+  patterns,
+  ignore.case = TRUE,
+  perl = TRUE
+) {
   for (pattern in patterns) {
-    value_hit = grep(x = char, value = TRUE, pattern = pattern, ignore.case = ignore.case, perl = perl)[1]
-    if(!is.na(value_hit)) return(value_hit)
+    value_hit <- grep(
+      x = char,
+      value = TRUE,
+      pattern = pattern,
+      ignore.case = ignore.case,
+      perl = perl
+    )[1]
+    if (!is.na(value_hit)) return(value_hit)
   }
 
   return(NA)
@@ -260,12 +374,15 @@ identify_matching_in_order <- function(char, patterns, ignore.case=TRUE, perl=TR
 #' path_vcf_sv <- system.file("tumor.purple.sv.vcf", package = "sigstart")
 #' parse_purple_sv_vcf_to_bedpe(path_vcf_sv)
 #'
-parse_purple_sv_vcf_to_bedpe <- function(vcf_sv, include = c("pass", "pass_strict", "all")){
+parse_purple_sv_vcf_to_bedpe <- function(
+  vcf_sv,
+  include = c("pass", "pass_strict", "all")
+) {
   include <- rlang::arg_match(include)
 
   assertions::assert_file_exists(vcf_sv)
 
-  vcf = VariantAnnotation::readVcf(vcf_sv)
+  vcf <- VariantAnnotation::readVcf(vcf_sv)
 
   # Export breakpoints to BEDPE
   bpgr <- StructuralVariantAnnotation::breakpointRanges(vcf)
@@ -281,7 +398,6 @@ parse_purple_sv_vcf_to_bedpe <- function(vcf_sv, include = c("pass", "pass_stric
   bedpe <- StructuralVariantAnnotation::breakpointgr2bedpe(bpgr)
   return(bedpe)
 }
-
 
 
 #' Convert Gridss/Purple VCFs to sigminer-compatible data.frame
@@ -301,8 +417,11 @@ parse_purple_sv_vcf_to_bedpe <- function(vcf_sv, include = c("pass", "pass_stric
 #' path_vcf_sv <- system.file("tumor.purple.sv.vcf", package = "sigstart")
 #' parse_purple_sv_vcf_to_sigminer(path_vcf_sv)
 #'
-parse_purple_sv_vcf_to_sigminer <- function(vcf_sv, sample_id = "Sample", include = c("pass", "pass_only", "all")){
-
+parse_purple_sv_vcf_to_sigminer <- function(
+  vcf_sv,
+  sample_id = "Sample",
+  include = c("pass", "pass_only", "all")
+) {
   # Arg matching
   include <- rlang::arg_match(include)
 
@@ -313,19 +432,20 @@ parse_purple_sv_vcf_to_sigminer <- function(vcf_sv, sample_id = "Sample", includ
   # Get Just the breakpoints
   bedpe <- parse_purple_sv_vcf_to_bedpe(vcf_sv, include = include)
   bedpe[["Sample"]] <- sample_id
-  subset(bedpe, select=-c(name, score))
+  subset(bedpe, select = -c(name, score))
   sigminer <- relocate(bedpe, "Sample")
-  sigminer <- rename(sigminer, c(chr1="chrom1", chr2="chrom2"))
+  sigminer <- rename(sigminer, c(chr1 = "chrom1", chr2 = "chrom2"))
 
   # Add SVclass
   sigminer[["svclass"]] <- with(sigminer, {
     dplyr::case_when(
       chr1 != chr2 ~ "translocation",
-      strand1== "+" & strand2=="+" ~ "deletion",
-      strand1== "-" & strand2=="-" ~ "tandem-duplication",
+      strand1 == "+" & strand2 == "+" ~ "deletion",
+      strand1 == "-" & strand2 == "-" ~ "tandem-duplication",
       strand1 != strand2 ~ "inversion",
       .default = "unsure"
-    )})
+    )
+  })
 
   return(sigminer)
 }
@@ -359,18 +479,21 @@ parse_purple_sv_vcf_to_sigprofiler <- parse_purple_sv_vcf_to_bedpe
 #' path_cn <- system.file("purple.cnv.somatic.tsv", package = "sigstart")
 #' parse_cnv_to_sigminer <- parse_purple_cnv_to_sigminer(path_cn, sample_id = "tumor_sample")
 #'
-parse_cnv_to_sigminer <- function(segment,
-                                  sample_id = "Sample",
-                                  col_chromosome = "chromosome",
-                                  col_start = "start",
-                                  col_end = "end",
-                                  col_copynumber = "copyNumber",
-                                  col_minor_cn = "minorAlleleCopyNumber",
-                                  exclude_sex_chromosomes = TRUE
-){
+parse_cnv_to_sigminer <- function(
+  segment,
+  sample_id = "Sample",
+  col_chromosome = "chromosome",
+  col_start = "start",
+  col_end = "end",
+  col_copynumber = "copyNumber",
+  col_minor_cn = "minorAlleleCopyNumber",
+  exclude_sex_chromosomes = TRUE
+) {
   # Gender
-  if(!exclude_sex_chromosomes){
-    cli::cli_abort("We do not recommend including taking sex chromosomes into account when examining copynumber signatures. Please set {.arg exclude_sex_chromosomes} argument of sigstarts {.code parse_purple_cnv_to_sigminer()} function to TRUE to automatically filter them out")
+  if (!exclude_sex_chromosomes) {
+    cli::cli_abort(
+      "We do not recommend including taking sex chromosomes into account when examining copynumber signatures. Please set {.arg exclude_sex_chromosomes} argument of sigstarts {.code parse_purple_cnv_to_sigminer()} function to TRUE to automatically filter them out"
+    )
   }
   # Assertions
   assertions::assert_file_exists(segment)
@@ -378,21 +501,39 @@ parse_cnv_to_sigminer <- function(segment,
 
   # Read File
   df_segment <- utils::read.csv(file = segment, header = TRUE, sep = "\t")
-  assertions::assert_names_include(df_segment, c(col_chromosome,col_start, col_end, col_copynumber,col_minor_cn))
+  assertions::assert_names_include(
+    df_segment,
+    c(col_chromosome, col_start, col_end, col_copynumber, col_minor_cn)
+  )
 
   # Rename and Add Columns
-  df_segment <- rename(df_segment, c(Chromosome = col_chromosome, modal_cn = col_copynumber, Start.bp = col_start, End.bp = col_end, minor_cn = col_minor_cn))
+  df_segment <- rename(
+    df_segment,
+    c(
+      Chromosome = col_chromosome,
+      modal_cn = col_copynumber,
+      Start.bp = col_start,
+      End.bp = col_end,
+      minor_cn = col_minor_cn
+    )
+  )
   df_segment[["sample"]] <- sample_id
 
   # Select just the columns sigminer needs
-  df_sigminer <- df_segment[c("sample", "Chromosome", "Start.bp", "End.bp", "modal_cn", "minor_cn")]
+  df_sigminer <- df_segment[c(
+    "sample",
+    "Chromosome",
+    "Start.bp",
+    "End.bp",
+    "modal_cn",
+    "minor_cn"
+  )]
 
-  if(exclude_sex_chromosomes){
-    df_sigminer <- df_sigminer[!is_sex_chromosome(df_sigminer$Chromosome),]
+  if (exclude_sex_chromosomes) {
+    df_sigminer <- df_sigminer[!is_sex_chromosome(df_sigminer$Chromosome), ]
   }
 
   return(df_sigminer)
-
 }
 
 #' Parse CNVs to sigminer format
@@ -406,11 +547,10 @@ parse_cnv_to_sigminer <- function(segment,
 #'
 #' @export
 parse_purple_cnv_to_sigminer <- function(
-    segment,
-    sample_id = "Sample",
-    exclude_sex_chromosomes = TRUE
-){
-
+  segment,
+  sample_id = "Sample",
+  exclude_sex_chromosomes = TRUE
+) {
   # Call parse_cnv_to_sigminer with the expected column names for purple
   df_sigminer <- parse_cnv_to_sigminer(
     segment,
@@ -425,5 +565,3 @@ parse_purple_cnv_to_sigminer <- function(
 
   return(df_sigminer)
 }
-
-

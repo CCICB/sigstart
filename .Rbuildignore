@@ -6,3 +6,7 @@
 ^single_sample_files/
 ^codecov\.yml$
 ^\.github$
+^\.positai$
+^\.claude$
+^[.]?air[.]toml$
+^\.vscode$
