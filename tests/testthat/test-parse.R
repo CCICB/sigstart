@@ -21,7 +21,8 @@ test_that("parse_vcf_to_sigminer_maf works correctly", {
   ))
   expect_equal(unique(df_maf$Tumor_Sample_Barcode), "sample")
 
-  # Add a snapshot test
+  # vcfR versions differ in whether they add VariantKey.
+  df_maf <- df_maf[, setdiff(names(df_maf), "VariantKey"), with = FALSE]
   expect_snapshot(df_maf)
 })
 
@@ -87,7 +88,8 @@ test_that("parse_vcf_to_sigminer_maf works correctly with tumor_normal samples",
 
   expect_equal(nrow(df_maf_strictpass), 393)
 
-  # Add a snapshot test
+  # vcfR versions differ in whether they add VariantKey.
+  df_maf <- df_maf[, setdiff(names(df_maf), "VariantKey"), with = FALSE]
   expect_snapshot(df_maf)
 })
 
