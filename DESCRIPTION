@@ -20,7 +20,6 @@ Imports:
     cli,
     data.table,
     dplyr,
-    plyranges,
     rlang,
     Rsamtools,
     sigshared (>= 0.0.0.9000),

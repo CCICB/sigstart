@@ -387,10 +387,10 @@ parse_purple_sv_vcf_to_bedpe <- function(
   # Export breakpoints to BEDPE
   bpgr <- StructuralVariantAnnotation::breakpointRanges(vcf)
   if (include == "pass_strict") {
-    bpgr <- dplyr::filter(bpgr, FILTER == "PASS")
+    bpgr <- bpgr[bpgr$FILTER %in% "PASS", , drop = FALSE]
   } else if (include == "pass") {
-    # Allow PASS or missing
-    bpgr <- dplyr::filter(bpgr, FILTER %in% c("PASS", "."))
+    # Allow PASS or the VCF missing-value marker (.)
+    bpgr <- bpgr[bpgr$FILTER %in% c("PASS", "."), , drop = FALSE]
   } else if (include == "all") {
     #"Include all variants"
   }

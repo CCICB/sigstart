@@ -290,6 +290,33 @@ test_that("parse_purple_sv_vcf_to_bedpe works correctly", {
   expect_snapshot(bedpe)
 })
 
+test_that("parse_purple_sv_vcf_to_bedpe filters GRanges by FILTER", {
+  path_vcf_sv <- system.file("tumor.purple.sv.vcf", package = "sigstart")
+  vcf_lines <- readLines(path_vcf_sv)
+  header_lines <- vcf_lines[startsWith(vcf_lines, "#")]
+  record_lines <- vcf_lines[grepl(
+    "^[^\\t]+\\t[^\\t]+\\t(1623|1624|1739|1740|2434|2435)\\t",
+    vcf_lines
+  )]
+  expect_length(record_lines, 6L)
+
+  record_lines <- vapply(strsplit(record_lines, "\t", fixed = TRUE), function(fields) {
+    if (fields[[3]] %in% c("1739", "1740")) {
+      fields[[7]] <- "."
+    } else if (fields[[3]] %in% c("2434", "2435")) {
+      fields[[7]] <- "INFERRED"
+    }
+    paste(fields, collapse = "\t")
+  }, character(1), USE.NAMES = FALSE)
+
+  path_test_vcf <- withr::local_tempfile(fileext = ".vcf")
+  writeLines(c(header_lines, record_lines), path_test_vcf)
+
+  expect_equal(nrow(parse_purple_sv_vcf_to_bedpe(path_test_vcf, include = "pass")), 2L)
+  expect_equal(nrow(parse_purple_sv_vcf_to_bedpe(path_test_vcf, include = "pass_strict")), 1L)
+  expect_equal(nrow(parse_purple_sv_vcf_to_bedpe(path_test_vcf, include = "all")), 3L)
+})
+
 test_that("parse_purple_sv_vcf_to_sigminer works correctly", {
   path_vcf_sv <- system.file(
     "tumor_normal.purple.somatic.vcf.gz",
